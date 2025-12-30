@@ -20,3 +20,4 @@ def user_has_perm(user, codename, obj=None):
             return True
 
     return False
+

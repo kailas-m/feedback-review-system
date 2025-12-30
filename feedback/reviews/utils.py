@@ -32,3 +32,4 @@ def user_has_perm(user, codename, obj=None):
             pass
 
     return False
+

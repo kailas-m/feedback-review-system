@@ -25,6 +25,7 @@ class Permission(models.Model):
 
 
 class Role(models.Model):
+
     name = models.CharField(max_length=50, unique=True)
     permissions = models.ManyToManyField(Permission, blank=True)
     users = models.ManyToManyField(User, blank=True, related_name="roles")
@@ -34,6 +35,7 @@ class Role(models.Model):
 
 
 class UserPermission(models.Model):
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="direct_permissions")
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
 
