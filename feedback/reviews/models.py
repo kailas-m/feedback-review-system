@@ -1,13 +1,14 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 User = settings.AUTH_USER_MODEL
 
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     comment = models.TextField()
-    rating = models.PositiveSmallIntegerField()  # 1–5
+    rating = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)]) # 1–5
     admin_reply = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

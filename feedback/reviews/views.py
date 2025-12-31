@@ -16,7 +16,7 @@ from .models import Review, Role, Permission, UserPermission
 from .utils import user_has_perm
 
 # Token config
-ACCESS_LIFETIME_MINUTES = 15
+ACCESS_LIFETIME_MINUTES = 45
 REFRESH_LIFETIME_DAYS = 7
 JWT_ALGORITHM = "HS256"
 JWT_SECRET = getattr(settings, "JWT_SECRET", None) or getattr(settings, "DJANGO_SECRET_KEY", None)
@@ -64,14 +64,7 @@ def get_user_from_jwt(request):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class RegisterView(View):
-<<<<<<< HEAD
 
-=======
-    """
-    Registers user, assigns them to the 'user' role (if exists), and copies role perms
-    into direct UserPermission entries.
-    """
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
     def post(self, request):
         data = _parse_json(request)
         username = data.get("username")
@@ -83,14 +76,10 @@ class RegisterView(View):
 
         user = User.objects.create_user(username=username, password=password)
 
-<<<<<<< HEAD
-=======
-        # assign role 'user' if present
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
         try:
             user_role = Role.objects.get(name="user")
             user_role.users.add(user)
-            # copy role permissions -> direct user permissions
             for perm in user_role.permissions.all():
                 UserPermission.objects.get_or_create(user=user, permission=perm)
         except Role.DoesNotExist:
@@ -107,10 +96,7 @@ class LoginView(View):
             return JsonResponse({"error": "Invalid credentials"}, status=400)
         access = _make_token(user, "access", timedelta(minutes=ACCESS_LIFETIME_MINUTES))
         refresh = _make_token(user, "refresh", timedelta(days=REFRESH_LIFETIME_DAYS))
-<<<<<<< HEAD
-=======
-        # return roles as id+name
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
         roles = list(user.roles.values_list("id", "name"))
         return JsonResponse({"access": access, "refresh": refresh, "roles": roles, "is_staff": user.is_staff})
 
@@ -219,13 +205,7 @@ class AverageRatingView(View):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class PromoteToModeratorView(View):
-<<<<<<< HEAD
-=======
-    """
-    Admins can promote a user to moderator.
-    Body: { "user_id": <id>, "username": "..." }
-    """
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
     def post(self, request):
         requester = get_user_from_jwt(request)
         if not requester or not (requester.is_superuser or user_has_perm(requester, "manage_roles")):
@@ -236,17 +216,12 @@ class PromoteToModeratorView(View):
         username = data.get("username")
         if not uid or not username:
             return JsonResponse({"error": "user_id and username required"}, status=400)
-<<<<<<< HEAD
-        target = get_object_or_404(User, id=uid, username=username)
-        mod_role = get_object_or_404(Role, name="moderator")
-        mod_role.users.add(target)
-=======
+
         # validate
         target = get_object_or_404(User, id=uid, username=username)
         mod_role = get_object_or_404(Role, name="moderator")
         mod_role.users.add(target)
-        # copy moderator role permissions into user's direct permissions
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+        
         for perm in mod_role.permissions.all():
             UserPermission.objects.get_or_create(user=target, permission=perm)
 
@@ -254,13 +229,7 @@ class PromoteToModeratorView(View):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class ModifyPermissionUserView(View):
-<<<<<<< HEAD
-=======
-    """
-    Admin endpoint to add/remove a permission to a user.
-    Body: { "user_id": 3, "permission": "submit_review", "action": "add"|"remove" }
-    """
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
     def post(self, request):
         requester = get_user_from_jwt(request)
         if not requester or not (requester.is_superuser or user_has_perm(requester, "manage_permissions")):
@@ -287,13 +256,7 @@ class ModifyPermissionUserView(View):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class ModifyPermissionRoleView(View):
-<<<<<<< HEAD
-=======
-    """
-    Admin endpoint to add/remove a permission to a role and propagate to role users.
-    Body: { "role_id": 2, "permission": "view_average_rating", "action": "add"|"remove" }
-    """
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
     def post(self, request):
         requester = get_user_from_jwt(request)
         if not requester or not (requester.is_superuser or user_has_perm(requester, "manage_permissions")):
@@ -312,19 +275,13 @@ class ModifyPermissionRoleView(View):
 
         if action == "add":
             role.permissions.add(perm)
-<<<<<<< HEAD
-=======
-            # propagate to users in the role
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
             for u in role.users.all():
                 UserPermission.objects.get_or_create(user=u, permission=perm)
             return JsonResponse({"message": "Permission added to role and propagated", "role_id": role.id, "permission": perm.codename})
         else:
             role.permissions.remove(perm)
-<<<<<<< HEAD
-=======
-            # remove direct permission from users in role
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
             for u in role.users.all():
                 UserPermission.objects.filter(user=u, permission=perm).delete()
             return JsonResponse({"message": "Permission removed from role and removed from role users", "role_id": role.id, "permission": perm.codename})
@@ -332,23 +289,13 @@ class ModifyPermissionRoleView(View):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class ModeratorModifyPermissionUserView(View):
-<<<<<<< HEAD
 
-=======
-    """
-    Moderator can add/remove permissions to a user but only if Permission.allowed_for_moderator == True.
-    Body: { "user_id": 3, "permission": "submit_review", "action": "add"|"remove" }
-    """
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
     def post(self, request):
         requester = get_user_from_jwt(request)
         if not requester:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
-<<<<<<< HEAD
-=======
-        # quick moderator check
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
         if not requester.roles.filter(name="moderator").exists():
             return JsonResponse({"error": "Moderator role required"}, status=403)
 
@@ -376,14 +323,7 @@ class ModeratorModifyPermissionUserView(View):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class ListRolesView(View):
-<<<<<<< HEAD
-=======
-    """
-    If requester is admin (manage_roles) show: all roles + all users with their user_id, username, roles and 
-    the effective direct permissions (no distinction).
-    For non-admins: show only available roles (id + name + permission codenames).
-    """
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
     def get(self, request):
         requester = get_user_from_jwt(request)
         roles_qs = Role.objects.prefetch_related("permissions").all()
@@ -392,21 +332,15 @@ class ListRolesView(View):
             for r in roles_qs
         ]
 
-<<<<<<< HEAD
-=======
-        # admin view: include full users listing with direct permissions merged
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
         if requester and (requester.is_superuser or user_has_perm(requester, "manage_roles")):
             users = User.objects.all()
             users_list = []
             for u in users:
-<<<<<<< HEAD
-                rlist = list(u.roles.values("id", "name"))
-=======
+
                 # user roles (id, name)
                 rlist = list(u.roles.values("id", "name"))
-                # direct permissions as list of codenames
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+               
                 perms = list(u.direct_permissions.select_related("permission").values_list("permission__codename", flat=True))
                 users_list.append({
                     "user_id": u.id,
@@ -421,11 +355,7 @@ class ListRolesView(View):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class DemoteModeratorView(View):
-<<<<<<< HEAD
-    def post(self, request):
-        requester = get_user_from_jwt(request)
 
-=======
     """
     Admin demotes a moderator back to user.
     Body: { "user_id": <id>, "username": "<username>" }
@@ -434,7 +364,6 @@ class DemoteModeratorView(View):
         requester = get_user_from_jwt(request)
 
         # Only admin allowed
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
         if not requester or not (requester.is_superuser or user_has_perm(requester, "manage_roles")):
             return JsonResponse({"error": "Forbidden"}, status=403)
 
@@ -450,10 +379,7 @@ class DemoteModeratorView(View):
 
         target = get_object_or_404(User, id=uid, username=username)
 
-<<<<<<< HEAD
-=======
-        # Safety: never demote admin
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
         if target.is_superuser:
             return JsonResponse(
                 {"error": "Admin cannot be demoted"},
@@ -463,40 +389,29 @@ class DemoteModeratorView(View):
         moderator_role = get_object_or_404(Role, name="moderator")
         user_role = get_object_or_404(Role, name="user")
 
-<<<<<<< HEAD
-=======
-        # If user is not moderator
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
+
         if not moderator_role.users.filter(id=target.id).exists():
             return JsonResponse(
                 {"error": "User is not a moderator"},
                 status=400
             )
 
-<<<<<<< HEAD
-        moderator_role.users.remove(target)
 
-=======
         # 1️⃣ Remove moderator role
         moderator_role.users.remove(target)
 
         # 2️⃣ Remove moderator permissions from direct permissions
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
         moderator_perms = moderator_role.permissions.all()
         UserPermission.objects.filter(
             user=target,
             permission__in=moderator_perms
         ).delete()
 
-<<<<<<< HEAD
-        user_role.users.add(target)
 
-=======
         # 3️⃣ Ensure user role exists
         user_role.users.add(target)
 
         # 4️⃣ Re-add user role permissions as direct permissions
->>>>>>> f0ebcdb (Add moderator demotion and role-safe permission handling)
         for perm in user_role.permissions.all():
             UserPermission.objects.get_or_create(
                 user=target,
